@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.14)
+project(vector_search LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+find_package(Threads REQUIRED)
+add_library(vsearch_core INTERFACE)
+target_include_directories(vsearch_core INTERFACE include)
+target_link_libraries(vsearch_core INTERFACE Threads::Threads)
+
+option(VS_AVX2 "Enable AVX2 SIMD kernels (x86-64 only)" ON)
+if(VS_AVX2 AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND NOT MSVC)
+  target_compile_options(vsearch_core INTERFACE -mavx2)
+endif()
+if(NOT MSVC)
+  target_compile_options(vsearch_core INTERFACE -O3 -Wall -Wextra)
+endif()
+
+add_executable(bench bench/bench.cpp)
+target_link_libraries(bench PRIVATE vsearch_core)
+
+enable_testing()
+add_executable(test_hnsw tests/test_hnsw.cpp)
+target_link_libraries(test_hnsw PRIVATE vsearch_core)
+add_test(NAME hnsw COMMAND test_hnsw)
